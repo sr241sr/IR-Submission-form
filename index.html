@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NSO Inspection Report Submission</title>
+  <style>
+    :root { --primary: #1a4f8b; --bg: #f4f6f9; --card: #ffffff; --border: #d1d9e6; }
+    body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); margin: 0; padding: 20px; color: #222; }
+    .container { max-width: 650px; margin: 0 auto; background: var(--card); padding: 28px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+    h2 { margin-top: 0; color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 10px; font-size: 1.3rem; }
+    .subtitle { font-size: 0.85rem; color: #555; margin-bottom: 20px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    .full { grid-column: span 2; }
+    label { display: block; font-weight: 600; font-size: 0.88rem; margin-bottom: 5px; color: #333; }
+    input, select { width: 100%; padding: 9px 11px; border: 1px solid var(--border); border-radius: 5px; font-size: 0.95rem; box-sizing: border-box; }
+    input:focus, select:focus { outline: none; border-color: var(--primary); }
+    button { width: 100%; background: var(--primary); color: #fff; border: none; padding: 12px; font-size: 1rem; font-weight: 600; border-radius: 5px; cursor: pointer; margin-top: 15px; }
+    button:disabled { background: #8aa4c1; cursor: not-allowed; }
+    #status { margin-top: 15px; padding: 12px; border-radius: 5px; display: none; font-size: 0.92rem; }
+    .success { background: #e6f4ea; color: #137333; border: 1px solid #ceead6; }
+    .error { background: #fce8e6; color: #c5221f; border: 1px solid #fad2cf; }
+    @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } .full { grid-column: span 1; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>NSO (FOD) Regional Office Kadapa</h2>
+    <div class="subtitle">Inspection Note Submission Portal</div>
+
+    <form id="inspectionForm">
+      <div class="grid">
+        <div>
+          <label for="officerName">Name of Inspecting Officer *</label>
+          <input type="text" id="officerName" placeholder="e.g., M Chaitanya Kumar" required>
+        </div>
+
+        <div>
+          <label for="designation">Designation *</label>
+          <select id="designation" required>
+            <option value="">-- Select Designation --</option>
+            <option value="Survey Supervisor">Survey Supervisor</option>
+            <option value="Senior Statistical Officer">Senior Statistical Officer (SSO)</option>
+            <option value="Junior Statistical Officer">Junior Statistical Officer (JSO)</option>
+            <option value="Assistant Director">Assistant Director</option>
+            <option value="Deputy Director">Deputy Director</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="sro">NSRO / SRO *</label>
+          <select id="sro" required>
+            <option value="">-- Select Office --</option>
+            <option value="RO Kadapa">RO Kadapa</option>
+            <option value="SRO Anantapur">SRO Anantapur</option>
+            <option value="SRO Guntur">SRO Guntur</option>
+            <option value="SRO Kurnool">SRO Kurnool</option>
+            <option value="SRO Nellore">SRO Nellore</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="scheme">Scheme *</label>
+          <input type="text" id="scheme" placeholder="e.g., ASUSE, PLFS, NSS 80th" required>
+        </div>
+
+        <div>
+          <label for="fsuNo">FSU No. *</label>
+          <input type="text" id="fsuNo" placeholder="e.g., 42004" required>
+        </div>
+
+        <div>
+          <label for="fsuName">FSU Name *</label>
+          <input type="text" id="fsuName" placeholder="e.g., Nellore Mc" required>
+        </div>
+
+        <div class="full">
+          <label for="inspectionOf">Inspection Of (Name & Designation) *</label>
+          <input type="text" id="inspectionOf" placeholder="e.g., A Vinay, SE" required>
+        </div>
+
+        <div>
+          <label for="dateOfInspection">Date of Inspection *</label>
+          <input type="date" id="dateOfInspection" required>
+        </div>
+
+        <div>
+          <label for="dateNoteSubmitted">Date on which Inspection Note Submitted *</label>
+          <input type="date" id="dateNoteSubmitted" required>
+        </div>
+
+        <div class="full">
+          <label for="reportFile">Upload Inspection Note (PDF / DOCX / JPG, Max 5MB) *</label>
+          <input type="file" id="reportFile" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" required>
+        </div>
+      </div>
+
+      <button type="submit" id="submitBtn">Submit Inspection Report</button>
+    </form>
+
+    <div id="status"></div>
+  </div>
+
+  <script>
+    // REPLACE THIS WITH YOUR DEPLOYED GOOGLE APPS SCRIPT WEB APP URL
+    const SCRIPT_URL = 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE';
+
+    function formatDateDDMMYYYY(isoDate) {
+      if (!isoDate) return '';
+      const [y, m, d] = isoDate.split('-');
+      return `${d}/${m}/${y}`;
+    }
+
+    document.getElementById('inspectionForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const btn = document.getElementById('submitBtn');
+      const statusDiv = document.getElementById('status');
+      const fileInput = document.getElementById('reportFile');
+      const file = fileInput.files[0];
+
+      if (file && file.size > 5 * 1024 * 1024) {
+        statusDiv.className = 'error';
+        statusDiv.textContent = 'File size exceeds 5MB limit. Please compress the PDF/image and try again.';
+        statusDiv.style.display = 'block';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Uploading & Saving... Please wait';
+      statusDiv.style.display = 'none';
+
+      const reader = new FileReader();
+      reader.onload = async function() {
+        const base64Data = reader.result.split(',')[1];
+
+        const payload = {
+          officerName: document.getElementById('officerName').value.trim(),
+          designation: document.getElementById('designation').value,
+          scheme: document.getElementById('scheme').value.trim(),
+          fsuNo: document.getElementById('fsuNo').value.trim(),
+          fsuName: document.getElementById('fsuName').value.trim(),
+          inspectionOf: document.getElementById('inspectionOf').value.trim(),
+          dateOfInspection: formatDateDDMMYYYY(document.getElementById('dateOfInspection').value),
+          sro: document.getElementById('sro').value,
+          dateNoteSubmitted: formatDateDDMMYYYY(document.getElementById('dateNoteSubmitted').value),
+          fileName: file.name,
+          mimeType: file.type,
+          fileData: base64Data
+        };
+
+        try {
+          const response = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            body: JSON.stringify(payload)
+          });
+          const result = await response.json();
+
+          if (result.status === 'success') {
+            statusDiv.className = 'success';
+            statusDiv.innerHTML = `<strong>Submitted Successfully!</strong> Inspection note for FSU ${payload.fsuNo} recorded.`;
+            document.getElementById('inspectionForm').reset();
+          } else {
+            throw new Error(result.message || 'Unknown error');
+          }
+        } catch (err) {
+          statusDiv.className = 'error';
+          statusDiv.textContent = 'Submission failed: ' + err.message;
+        } finally {
+          statusDiv.style.display = 'block';
+          btn.disabled = false;
+          btn.textContent = 'Submit Inspection Report';
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  </script>
+</body>
+</html>
